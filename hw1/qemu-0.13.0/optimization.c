@@ -94,13 +94,6 @@ void helper_shack_flush(CPUState *env)
 #endif
 }
 
-#ifdef DEBUG_SHACK
-void helper_print_pop_shack(CPUState *env)
-{
-    fprintf(stderr, "pop_shack, top = %p, value = %016llx\n", env->shack_top, *env->shack_top);
-}
-#endif
-
 void helper_push_shack(CPUState *env, target_ulong next_eip)
 {
     if (env->shack_top >= env->shack_end) helper_shack_flush(env);
@@ -119,21 +112,27 @@ void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
     gen_helper_push_shack(cpu_env, tcg_const_tl(next_eip));
 }
 
+target_ulong helper_pop_shack(CPUState *env, target_ulong next_eip)
+{
+#ifdef DEBUG_SHACK
+    fprintf(stderr, "pop_shack, top = %p, value = %016llx\n", env->shack_top - 1, *(env->shack_top - 1));
+#endif
+    if (env->shack_top <= env->shack) return 0;
+    uint64_t shack_entry = *--env->shack_top;
+    if (shack_entry >> 32 == next_eip) return shack_entry & 0xffffffff;
+    return 0;
+}
+
 /*
  * pop_shack()
  *  Pop next host eip from shadow stack.
  */
 void pop_shack(TCGv_ptr cpu_env, TCGv next_eip)
 {
-    TCGv_ptr cpu_shack_top = tcg_temp_new();
-    tcg_gen_ld_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
-    // TODO
-    tcg_gen_subi_ptr(cpu_shack_top, cpu_shack_top, sizeof(*((CPUState*)0)->shack_top));
-    tcg_gen_st_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
-    tcg_temp_free(cpu_shack_top);
-#ifdef DEBUG_SHACK
-    gen_helper_print_pop_shack(cpu_env);
-#endif
+    TCGv host_eip = tcg_temp_new();
+    gen_helper_pop_shack(host_eip, cpu_env, next_eip);
+    // TODO jump to next_eip if not zero
+    tcg_temp_free(host_eip);
 }
 
 /*
