@@ -324,7 +324,7 @@ int cpu_exec(CPUState *env1)
 #elif defined(TARGET_ARM)
                     do_interrupt(env);
 #elif defined(TARGET_SH4)
-		    do_interrupt(env);
+                    do_interrupt(env);
 #elif defined(TARGET_ALPHA)
                     do_interrupt(env);
 #elif defined(TARGET_CRIS)
@@ -389,15 +389,15 @@ int cpu_exec(CPUState *env1)
                             env->hflags2 |= HF2_NMI_MASK;
                             do_interrupt(EXCP02_NMI, 0, 0, 0, 1);
                             next_tb = 0;
-			} else if (interrupt_request & CPU_INTERRUPT_MCE) {
+                        } else if (interrupt_request & CPU_INTERRUPT_MCE) {
                             env->interrupt_request &= ~CPU_INTERRUPT_MCE;
                             do_interrupt(EXCP12_MCHK, 0, 0, 0, 0);
                             next_tb = 0;
                         } else if ((interrupt_request & CPU_INTERRUPT_HARD) &&
-                                   (((env->hflags2 & HF2_VINTR_MASK) && 
+                                   (((env->hflags2 & HF2_VINTR_MASK) &&
                                      (env->hflags2 & HF2_HIF_MASK)) ||
-                                    (!(env->hflags2 & HF2_VINTR_MASK) && 
-                                     (env->eflags & IF_MASK && 
+                                    (!(env->hflags2 & HF2_VINTR_MASK) &&
+                                     (env->eflags & IF_MASK &&
                                       !(env->hflags & HF_INHIBIT_IRQ_MASK))))) {
                             int intno;
                             svm_check_intercept(SVM_EXIT_INTR);
@@ -415,7 +415,7 @@ int cpu_exec(CPUState *env1)
                             next_tb = 0;
 #if !defined(CONFIG_USER_ONLY)
                         } else if ((interrupt_request & CPU_INTERRUPT_VIRQ) &&
-                                   (env->eflags & IF_MASK) && 
+                                   (env->eflags & IF_MASK) &&
                                    !(env->hflags & HF_INHIBIT_IRQ_MASK)) {
                             int intno;
                             /* FIXME: this should respect TPR */
@@ -477,10 +477,10 @@ int cpu_exec(CPUState *env1)
                                 next_tb = 0;
                             }
                         }
-		    } else if (interrupt_request & CPU_INTERRUPT_TIMER) {
-			//do_interrupt(0, 0, 0, 0, 0);
-			env->interrupt_request &= ~CPU_INTERRUPT_TIMER;
-		    }
+                    } else if (interrupt_request & CPU_INTERRUPT_TIMER) {
+                        //do_interrupt(0, 0, 0, 0, 0);
+                        env->interrupt_request &= ~CPU_INTERRUPT_TIMER;
+                    }
 #elif defined(TARGET_ARM)
                     if (interrupt_request & CPU_INTERRUPT_FIQ
                         && !(env->uncached_cpsr & CPSR_F)) {
@@ -1021,7 +1021,7 @@ int cpu_signal_handler(int host_signum, void *pinfo,
     case 0x2d: // stq
     case 0x2e: // stl_c
     case 0x2f: // stq_c
-	is_write = 1;
+        is_write = 1;
     }
 
     return handle_cpu_signal(pc, (unsigned long)info->si_addr,
@@ -1076,8 +1076,8 @@ int cpu_signal_handler(int host_signum, void *pinfo,
       case 0x25: // stfsr
       case 0x3c: // casa
       case 0x3e: // casxa
-	is_write = 1;
-	break;
+        is_write = 1;
+        break;
       }
     }
     return handle_cpu_signal(pc, (unsigned long)info->si_addr,
@@ -1145,13 +1145,13 @@ int cpu_signal_handler(int host_signum, void *pinfo, void *puc)
       case SIGSEGV:
       case SIGBUS:
       case SIGTRAP:
-	  if (info->si_code && (info->si_segvflags & __ISR_VALID))
-	      /* ISR.W (write-access) is bit 33:  */
-	      is_write = (info->si_isr >> 33) & 1;
-	  break;
+          if (info->si_code && (info->si_segvflags & __ISR_VALID))
+              /* ISR.W (write-access) is bit 33:  */
+              is_write = (info->si_isr >> 33) & 1;
+          break;
 
       default:
-	  break;
+          break;
     }
     return handle_cpu_signal(ip, (unsigned long)info->si_addr,
                              is_write,
@@ -1265,7 +1265,7 @@ int cpu_signal_handler(int host_signum, void *pinfo,
         break;
     }
 
-    return handle_cpu_signal(pc, (unsigned long)info->si_addr, 
+    return handle_cpu_signal(pc, (unsigned long)info->si_addr,
                              is_write, &uc->uc_sigmask, puc);
 }
 
