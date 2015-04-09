@@ -53,7 +53,7 @@ void helper_print_push_shack(CPUState *env)
 
 void helper_print_pop_shack(CPUState *env)
 {
-    fprintf(stderr, "pop_shack, top = %p\n", env->shack_top);
+    fprintf(stderr, "pop_shack, top = %p, value = %016llx\n", env->shack_top, *env->shack_top);
 }
 #endif
 
@@ -65,18 +65,22 @@ void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
 {
     int label_flush = gen_new_label();
     int label_end = gen_new_label();
-    TCGv_ptr cpu_shack_top = tcg_temp_new();
+    TCGv_ptr cpu_shack_top = tcg_temp_local_new();
     TCGv_ptr cpu_shack_end = tcg_temp_new();
     tcg_gen_ld_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
     tcg_gen_ld_ptr(cpu_shack_end, cpu_env, offsetof(CPUState, shack_end));
     // goto flush if stack full
     tcg_gen_brcond_ptr(TCG_COND_GE, cpu_shack_top, cpu_shack_end, label_flush);
-    tcg_temp_free(cpu_shack_top);
     tcg_temp_free(cpu_shack_end);
+    // build shack entry
+    TCGv_i64 shack_entry = tcg_temp_new_i64();
+    tcg_gen_movi_i64(shack_entry, next_eip);
+    tcg_gen_shli_i64(shack_entry, shack_entry, 32);
+    // TODO load host eip into shack entry
     // push shack
-    cpu_shack_top = tcg_temp_new();
-    tcg_gen_ld_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
-    // TODO push eip
+    tcg_gen_st_i64(shack_entry, cpu_shack_top, 0);
+    tcg_temp_free_i64(shack_entry);
+    // increment shack top
     tcg_gen_addi_ptr(cpu_shack_top, cpu_shack_top, sizeof(*((CPUState*)0)->shack_top));
     tcg_gen_st_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
     tcg_temp_free(cpu_shack_top);
