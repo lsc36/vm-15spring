@@ -20,6 +20,9 @@ list_t *shadow_hash_list;
 
 static inline void shack_init(CPUState *env)
 {
+    env->shack = (uint64_t*)malloc(SHACK_SIZE);
+    env->shack_top = env->shack;
+    env->shack_end = (void*)env->shack + SHACK_SIZE;
 }
 
 /*
@@ -44,6 +47,12 @@ void helper_shack_flush(CPUState *env)
  */
 void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
 {
+    TCGv cpu_shack_top = tcg_temp_new();
+    tcg_gen_ld_tl(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
+    // TODO
+    tcg_gen_addi_tl(cpu_shack_top, cpu_shack_top, sizeof(uint64_t));
+    tcg_gen_st_tl(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
+    tcg_temp_free(cpu_shack_top);
 }
 
 /*
@@ -52,6 +61,12 @@ void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
  */
 void pop_shack(TCGv_ptr cpu_env, TCGv next_eip)
 {
+    TCGv cpu_shack_top = tcg_temp_new();
+    tcg_gen_ld_tl(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
+    // TODO
+    tcg_gen_subi_tl(cpu_shack_top, cpu_shack_top, sizeof(uint64_t));
+    tcg_gen_st_tl(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
+    tcg_temp_free(cpu_shack_top);
 }
 
 /*
