@@ -23,6 +23,10 @@ static inline void shack_init(CPUState *env)
     env->shack = (uint64_t*)malloc(SHACK_SIZE);
     env->shack_top = env->shack;
     env->shack_end = (void*)env->shack + SHACK_SIZE;
+    shadow_hash_list = (list_t*)malloc(sizeof(list_t) * MAX_CALL_SLOT);
+    int i;
+    for (i = 0; i < MAX_CALL_SLOT; i++)
+        shadow_hash_list[i].prev = shadow_hash_list[i].next = NULL;
 }
 
 /*
@@ -31,6 +35,51 @@ static inline void shack_init(CPUState *env)
  */
 inline void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned long *host_eip)
 {
+    int index = guest_eip % MAX_CALL_SLOT;
+    list_t **entry_ptr = &shadow_hash_list[index].next;
+    int found = 0;
+    while (*entry_ptr != NULL) {
+        if (((shadow_pair*)*entry_ptr)->guest_eip == guest_eip) {
+            found = 1;
+            ((shadow_pair*)*entry_ptr)->shadow_slot = host_eip;
+            break;
+        }
+        entry_ptr = &(*entry_ptr)->next;
+    }
+    if (!found) {
+        *entry_ptr = (list_t*)malloc(sizeof(shadow_pair));
+        ((shadow_pair*)*entry_ptr)->l.prev = (void*)entry_ptr - offsetof(list_t, next);
+        ((shadow_pair*)*entry_ptr)->l.next = NULL;
+        ((shadow_pair*)*entry_ptr)->guest_eip = guest_eip;
+        ((shadow_pair*)*entry_ptr)->shadow_slot = host_eip;
+    }
+}
+
+inline void insert_unresolved_eip(CPUState *env, target_ulong next_eip, unsigned long *slot)
+{
+    int index = next_eip % MAX_CALL_SLOT;
+    shadow_pair *entry = (shadow_pair*)malloc(sizeof(shadow_pair));
+    entry->l.prev = &shadow_hash_list[index];
+    entry->l.next = shadow_hash_list[index].next;
+    entry->guest_eip = next_eip;
+    entry->shadow_slot = NULL;
+    if (shadow_hash_list[index].next != NULL)
+        shadow_hash_list[index].next->prev = (list_t*)entry;
+    shadow_hash_list[index].next = (list_t*)entry;
+    *slot = (unsigned long)entry->shadow_slot;
+}
+
+uint64_t helper_lookup_shadow_ret_addr(CPUState *env, target_ulong pc)
+{
+    int index = pc % MAX_CALL_SLOT;
+    shadow_pair *entry = (shadow_pair*)shadow_hash_list[index].next;
+    while (entry != NULL) {
+        if (entry->guest_eip == pc) return (target_ulong)entry->shadow_slot;
+        entry = (shadow_pair*)entry->l.next;
+    }
+    unsigned long slot;
+    insert_unresolved_eip(env, pc, &slot);
+    return (uint64_t)slot;
 }
 
 /*
@@ -77,6 +126,10 @@ void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
     tcg_gen_movi_i64(shack_entry, next_eip);
     tcg_gen_shli_i64(shack_entry, shack_entry, 32);
     // TODO load host eip into shack entry
+    TCGv_i64 host_eip = tcg_temp_new_i64();
+    gen_helper_lookup_shadow_ret_addr(host_eip, cpu_env, tcg_const_tl(next_eip));
+    tcg_gen_or_i64(shack_entry, shack_entry, host_eip);
+    tcg_temp_free_i64(host_eip);
     // push shack
     tcg_gen_st_i64(shack_entry, cpu_shack_top, 0);
     tcg_temp_free_i64(shack_entry);

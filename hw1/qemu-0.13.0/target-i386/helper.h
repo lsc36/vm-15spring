@@ -217,6 +217,7 @@ DEF_HELPER_2(rclq, tl, tl, tl)
 DEF_HELPER_2(rcrq, tl, tl, tl)
 #endif
 
+DEF_HELPER_FLAGS_2(lookup_shadow_ret_addr, TCG_CALL_CONST, i64, env, tl)
 DEF_HELPER_FLAGS_1(shack_flush, TCG_CALL_CONST, void, env)
 #ifdef DEBUG_SHACK
 DEF_HELPER_FLAGS_1(print_push_shack, TCG_CALL_CONST, void, env)
