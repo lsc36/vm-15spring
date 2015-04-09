@@ -129,10 +129,15 @@ target_ulong helper_pop_shack(CPUState *env, target_ulong next_eip)
  */
 void pop_shack(TCGv_ptr cpu_env, TCGv next_eip)
 {
-    TCGv host_eip = tcg_temp_new();
+    int label_end = gen_new_label();
+    TCGv host_eip = tcg_temp_local_new();
     gen_helper_pop_shack(host_eip, cpu_env, next_eip);
-    // TODO jump to next_eip if not zero
+    // jump to next_eip if not zero
+    tcg_gen_brcondi_tl(TCG_COND_EQ, host_eip, 0, label_end);
+    *gen_opc_ptr++ = INDEX_op_jmp;
+    *gen_opparam_ptr++ = GET_TCGV_PTR(host_eip);
     tcg_temp_free(host_eip);
+    gen_set_label(label_end);
 }
 
 /*
