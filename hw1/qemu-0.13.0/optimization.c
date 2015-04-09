@@ -69,7 +69,7 @@ inline void insert_unresolved_eip(CPUState *env, target_ulong next_eip, unsigned
     *slot = (unsigned long)entry->shadow_slot;
 }
 
-uint64_t helper_lookup_shadow_ret_addr(CPUState *env, target_ulong pc)
+unsigned long lookup_shadow_ret_addr(CPUState *env, target_ulong pc)
 {
     int index = pc % MAX_CALL_SLOT;
     shadow_pair *entry = (shadow_pair*)shadow_hash_list[index].next;
@@ -79,7 +79,7 @@ uint64_t helper_lookup_shadow_ret_addr(CPUState *env, target_ulong pc)
     }
     unsigned long slot;
     insert_unresolved_eip(env, pc, &slot);
-    return (uint64_t)slot;
+    return slot;
 }
 
 /*
@@ -95,16 +95,20 @@ void helper_shack_flush(CPUState *env)
 }
 
 #ifdef DEBUG_SHACK
-void helper_print_push_shack(CPUState *env)
-{
-    fprintf(stderr, "push_shack, top = %p\n", env->shack_top);
-}
-
 void helper_print_pop_shack(CPUState *env)
 {
     fprintf(stderr, "pop_shack, top = %p, value = %016llx\n", env->shack_top, *env->shack_top);
 }
 #endif
+
+void helper_push_shack(CPUState *env, target_ulong next_eip)
+{
+    if (env->shack_top >= env->shack_end) helper_shack_flush(env);
+    *env->shack_top++ = ((uint64_t)next_eip << 32) | lookup_shadow_ret_addr(env, next_eip);
+#ifdef DEBUG_SHACK
+    fprintf(stderr, "push_shack, top = %p\n", env->shack_top);
+#endif
+}
 
 /*
  * push_shack()
@@ -112,40 +116,7 @@ void helper_print_pop_shack(CPUState *env)
  */
 void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
 {
-    int label_flush = gen_new_label();
-    int label_end = gen_new_label();
-    TCGv_ptr cpu_shack_top = tcg_temp_local_new();
-    TCGv_ptr cpu_shack_end = tcg_temp_new();
-    tcg_gen_ld_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
-    tcg_gen_ld_ptr(cpu_shack_end, cpu_env, offsetof(CPUState, shack_end));
-    // goto flush if stack full
-    tcg_gen_brcond_ptr(TCG_COND_GE, cpu_shack_top, cpu_shack_end, label_flush);
-    tcg_temp_free(cpu_shack_end);
-    // build shack entry
-    TCGv_i64 shack_entry = tcg_temp_new_i64();
-    tcg_gen_movi_i64(shack_entry, next_eip);
-    tcg_gen_shli_i64(shack_entry, shack_entry, 32);
-    // TODO load host eip into shack entry
-    TCGv_i64 host_eip = tcg_temp_new_i64();
-    gen_helper_lookup_shadow_ret_addr(host_eip, cpu_env, tcg_const_tl(next_eip));
-    tcg_gen_or_i64(shack_entry, shack_entry, host_eip);
-    tcg_temp_free_i64(host_eip);
-    // push shack
-    tcg_gen_st_i64(shack_entry, cpu_shack_top, 0);
-    tcg_temp_free_i64(shack_entry);
-    // increment shack top
-    tcg_gen_addi_ptr(cpu_shack_top, cpu_shack_top, sizeof(*((CPUState*)0)->shack_top));
-    tcg_gen_st_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
-    tcg_temp_free(cpu_shack_top);
-    tcg_gen_br(label_end);
-    // flush
-    gen_set_label(label_flush);
-    gen_helper_shack_flush(cpu_env);
-    // end
-    gen_set_label(label_end);
-#ifdef DEBUG_SHACK
-    gen_helper_print_push_shack(cpu_env);
-#endif
+    gen_helper_push_shack(cpu_env, tcg_const_tl(next_eip));
 }
 
 /*

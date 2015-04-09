@@ -52,6 +52,7 @@ typedef struct shadow_pair shadow_pair;
 
 inline void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned long *host_eip);
 inline void insert_unresolved_eip(CPUState *env, target_ulong next_eip, unsigned long *slot);
+unsigned long lookup_shadow_ret_addr(CPUState *env, target_ulong pc);
 void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip);
 void pop_shack(TCGv_ptr cpu_env, TCGv next_eip);
 
