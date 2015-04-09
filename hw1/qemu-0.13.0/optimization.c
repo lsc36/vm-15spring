@@ -39,8 +39,23 @@ inline void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned lon
  */
 void helper_shack_flush(CPUState *env)
 {
-    // TODO
+    env->shack_top = env->shack;
+#ifdef DEBUG_SHACK
+    fprintf(stderr, "flush\n");
+#endif
 }
+
+#ifdef DEBUG_SHACK
+void helper_print_push_shack(CPUState *env)
+{
+    fprintf(stderr, "push_shack, top = %p\n", env->shack_top);
+}
+
+void helper_print_pop_shack(CPUState *env)
+{
+    fprintf(stderr, "pop_shack, top = %p\n", env->shack_top);
+}
+#endif
 
 /*
  * push_shack()
@@ -59,17 +74,21 @@ void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
     tcg_temp_free(cpu_shack_top);
     tcg_temp_free(cpu_shack_end);
     // push shack
-    cpu_shack_top = tcg_temp_new(); // dead after branch
+    cpu_shack_top = tcg_temp_new();
     tcg_gen_ld_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
+    // TODO push eip
     tcg_gen_addi_ptr(cpu_shack_top, cpu_shack_top, sizeof(*((CPUState*)0)->shack_top));
     tcg_gen_st_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
     tcg_temp_free(cpu_shack_top);
     tcg_gen_br(label_end);
     // flush
     gen_set_label(label_flush);
-    helper_shack_flush(env);
+    gen_helper_shack_flush(cpu_env);
     // end
     gen_set_label(label_end);
+#ifdef DEBUG_SHACK
+    gen_helper_print_push_shack(cpu_env);
+#endif
 }
 
 /*
@@ -84,6 +103,9 @@ void pop_shack(TCGv_ptr cpu_env, TCGv next_eip)
     tcg_gen_subi_ptr(cpu_shack_top, cpu_shack_top, sizeof(*((CPUState*)0)->shack_top));
     tcg_gen_st_ptr(cpu_shack_top, cpu_env, offsetof(CPUState, shack_top));
     tcg_temp_free(cpu_shack_top);
+#ifdef DEBUG_SHACK
+    gen_helper_print_pop_shack(cpu_env);
+#endif
 }
 
 /*

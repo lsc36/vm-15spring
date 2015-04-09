@@ -218,6 +218,10 @@ DEF_HELPER_2(rcrq, tl, tl, tl)
 #endif
 
 DEF_HELPER_FLAGS_1(shack_flush, TCG_CALL_CONST, void, env)
+#ifdef DEBUG_SHACK
+DEF_HELPER_FLAGS_1(print_push_shack, TCG_CALL_CONST, void, env)
+DEF_HELPER_FLAGS_1(print_pop_shack, TCG_CALL_CONST, void, env)
+#endif
 DEF_HELPER_FLAGS_1(lookup_ibtc, TCG_CALL_CONST, ptr, tl)
 
 #include "def-helper.h"
