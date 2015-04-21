@@ -143,7 +143,6 @@ void pop_shack(TCGv_ptr cpu_env, TCGv next_eip)
 /*
  * Indirect Branch Target Cache
  */
-__thread int update_ibtc;
 struct ibtc_table ibtc_table;
 
 /*
@@ -158,7 +157,7 @@ void *helper_lookup_ibtc(target_ulong guest_eip)
 #ifdef DEBUG_IBTC
         fprintf(stderr, "hit\n");
 #endif
-        return entry->tb->tc_ptr;
+        return entry->host_eip;
     }
     return optimization_ret_addr;
 }
@@ -171,7 +170,7 @@ void update_ibtc_entry(TranslationBlock *tb)
 {
     struct jmp_pair *entry = &ibtc_table.htable[tb->pc & IBTC_CACHE_MASK];
     entry->guest_eip = tb->pc;
-    entry->tb = tb;
+    entry->host_eip = tb->tc_ptr;
 #ifdef DEBUG_IBTC
     fprintf(stderr, "update %p -> %p\n", tb->pc, tb->tc_ptr);
 #endif
@@ -183,7 +182,6 @@ void update_ibtc_entry(TranslationBlock *tb)
  */
 void ibtc_init(CPUState *env)
 {
-    update_ibtc = 1;
 }
 
 /*

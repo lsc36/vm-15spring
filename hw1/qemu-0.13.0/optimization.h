@@ -71,7 +71,7 @@ void pop_shack(TCGv_ptr cpu_env, TCGv next_eip);
 struct jmp_pair
 {
     target_ulong guest_eip;
-    TranslationBlock *tb;
+    void *host_eip;
 };
 
 struct ibtc_table

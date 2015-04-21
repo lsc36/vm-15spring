@@ -40,7 +40,6 @@
 #endif
 
 #include "optimization.h"
-extern __thread int update_ibtc;
 
 #if defined(__sparc__) && !defined(CONFIG_SOLARIS)
 // Work around ugly bugs in glibc that mangle global register contents
@@ -614,8 +613,7 @@ int cpu_exec(CPUState *env1)
 #endif
 
 #ifdef ENABLE_OPTIMIZATION_IBTC
-                    if (unlikely(update_ibtc == 1))
-                        update_ibtc_entry(tb);
+                    update_ibtc_entry(tb);
 #endif
 
                     next_tb = tcg_qemu_tb_exec(tc_ptr);
