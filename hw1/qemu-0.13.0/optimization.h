@@ -8,6 +8,10 @@
 
 /* Comment the next line to disable optimizations. */
 #define ENABLE_OPTIMIZATION
+#ifdef ENABLE_OPTIMIZATION
+#define ENABLE_OPTIMIZATION_SHACK
+#define ENABLE_OPTIMIZATION_IBTC
+#endif
 
 /*
  * Link list facilities
@@ -50,6 +54,7 @@ struct shadow_pair
 };
 typedef struct shadow_pair shadow_pair;
 
+void shack_init(CPUState *env);
 inline void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned long *host_eip);
 inline void insert_unresolved_eip(CPUState *env, target_ulong next_eip, unsigned long *slot);
 unsigned long lookup_shadow_ret_addr(CPUState *env, target_ulong pc);
@@ -74,7 +79,7 @@ struct ibtc_table
     struct jmp_pair htable[IBTC_CACHE_SIZE];
 };
 
-int init_optimizations(CPUState *env);
+void ibtc_init(CPUState *env);
 void update_ibtc_entry(TranslationBlock *tb);
 
 #endif

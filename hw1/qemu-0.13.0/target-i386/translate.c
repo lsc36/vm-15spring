@@ -183,7 +183,7 @@ enum {
     OR_A0, /* temporary register used when doing address evaluation */
 };
 
-#ifdef ENABLE_OPTIMIZATION
+#ifdef ENABLE_OPTIMIZATION_IBTC
 static inline void gen_op_set_cc_op(int32_t val);
 static inline void gen_ibtc_stub(DisasContext *s, TCGv ibtc_guest_eip)
 {
@@ -4659,10 +4659,14 @@ static target_ulong disas_insn(CPUState *env, DisasContext *s, target_ulong pc_s
             gen_push_T1(s);
             gen_op_jmp_T0();
 
-#ifdef ENABLE_OPTIMIZATION
+#ifdef ENABLE_OPTIMIZATION_IBTC
             TCGv ibtc_guest_eip = tcg_temp_local_new();
             tcg_gen_mov_tl(ibtc_guest_eip, cpu_T[0]);
+#endif
+#ifdef ENABLE_OPTIMIZATION_SHACK
             push_shack(env, cpu_env, next_eip);
+#endif
+#ifdef ENABLE_OPTIMIZATION_IBTC
             gen_ibtc_stub(s, ibtc_guest_eip);
             tcg_temp_free(ibtc_guest_eip);
 #endif
@@ -6225,7 +6229,7 @@ static target_ulong disas_insn(CPUState *env, DisasContext *s, target_ulong pc_s
             gen_op_andl_T0_ffff();
         gen_op_jmp_T0();
 
-#ifdef ENABLE_OPTIMIZATION
+#ifdef ENABLE_OPTIMIZATION_SHACK
         pop_shack(cpu_env, cpu_T[0]);
 #endif
 
@@ -6238,7 +6242,7 @@ static target_ulong disas_insn(CPUState *env, DisasContext *s, target_ulong pc_s
             gen_op_andl_T0_ffff();
         gen_op_jmp_T0();
 
-#ifdef ENABLE_OPTIMIZATION
+#ifdef ENABLE_OPTIMIZATION_SHACK
         pop_shack(cpu_env, cpu_T[0]);
 #endif
 
@@ -6313,7 +6317,7 @@ static target_ulong disas_insn(CPUState *env, DisasContext *s, target_ulong pc_s
             gen_movtl_T0_im(next_eip);
             gen_push_T0(s);
 
-#ifdef ENABLE_OPTIMIZATION
+#ifdef ENABLE_OPTIMIZATION_SHACK
             push_shack(env, cpu_env, next_eip);
 #endif
             gen_jmp(s, tval);

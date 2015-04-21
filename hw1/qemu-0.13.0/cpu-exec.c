@@ -613,7 +613,7 @@ int cpu_exec(CPUState *env1)
 #define env cpu_single_env
 #endif
 
-#ifdef ENABLE_OPTIMIZATION
+#ifdef ENABLE_OPTIMIZATION_IBTC
                     if (unlikely(update_ibtc == 1))
                         update_ibtc_entry(tb);
 #endif

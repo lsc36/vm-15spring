@@ -18,7 +18,7 @@ extern uint8_t *optimization_ret_addr;
  */
 list_t *shadow_hash_list;
 
-static inline void shack_init(CPUState *env)
+void shack_init(CPUState *env)
 {
     env->shack = (uint64_t*)malloc(SHACK_SIZE);
     env->shack_top = env->shack;
@@ -181,21 +181,9 @@ void update_ibtc_entry(TranslationBlock *tb)
  * ibtc_init()
  *  Create and initialize indirect branch target cache.
  */
-static inline void ibtc_init(CPUState *env)
+void ibtc_init(CPUState *env)
 {
     update_ibtc = 1;
-}
-
-/*
- * init_optimizations()
- *  Initialize optimization subsystem.
- */
-int init_optimizations(CPUState *env)
-{
-    shack_init(env);
-    ibtc_init(env);
-
-    return 0;
 }
 
 /*

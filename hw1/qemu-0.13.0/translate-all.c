@@ -99,7 +99,7 @@ int cpu_gen_code(CPUState *env, TranslationBlock *tb, int *gen_code_size_ptr)
     s->code_out_len += gen_code_size;
 #endif
 
-#ifdef ENABLE_OPTIMIZATION
+#ifdef ENABLE_OPTIMIZATION_SHACK
     shack_set_shadow(env, tb->pc, (unsigned long *)tb->tc_ptr);
 #endif
 

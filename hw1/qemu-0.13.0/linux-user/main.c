@@ -308,8 +308,11 @@ void cpu_loop(CPUX86State *env)
     abi_ulong pc;
     target_siginfo_t info;
 
-#ifdef ENABLE_OPTIMIZATION
-    init_optimizations(env);
+#ifdef ENABLE_OPTIMIZATION_SHACK
+    shack_init(env);
+#endif
+#ifdef ENABLE_OPTIMIZATION_IBTC
+    ibtc_init(env);
 #endif
 
     for(;;) {
